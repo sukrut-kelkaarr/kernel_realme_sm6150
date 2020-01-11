@@ -31,6 +31,16 @@
 #include "wcd-mbhc-v2.h"
 #include "pdata.h"
 
+#ifdef pr_debug
+#undef pr_debug
+#define pr_debug pr_warning
+#endif
+
+#ifdef dev_dbg
+#undef dev_dbg
+#define dev_dbg dev_err
+#endif
+
 #define WCD_MBHC_ADC_HS_THRESHOLD_MV    1700
 #define WCD_MBHC_ADC_HPH_THRESHOLD_MV   75
 #define WCD_MBHC_ADC_MICBIAS_MV         1800
@@ -462,7 +472,6 @@ static bool wcd_is_special_headset(struct wcd_mbhc *mbhc)
 		}
 	}
 	adc_threshold = wcd_mbhc_adc_get_hs_thres(mbhc);
-
 	while (!is_spl_hs) {
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
@@ -555,6 +564,11 @@ static void wcd_mbhc_adc_detect_plug_type(struct wcd_mbhc *mbhc)
 	struct snd_soc_codec *codec = mbhc->codec;
 
 	pr_debug("%s: enter\n", __func__);
+        #ifdef VENDOR_EDIT
+	//Wang.kun@MM.Audiodriver.Machine, 2019/08/17, Modify for headset insert noise
+	msleep(400);
+        #endif /* VENDOR_EDIT */
+
 	WCD_MBHC_RSC_ASSERT_LOCKED(mbhc);
 
 	if (mbhc->mbhc_cb->hph_pull_down_ctrl)
@@ -579,8 +593,16 @@ static void wcd_mbhc_adc_detect_plug_type(struct wcd_mbhc *mbhc)
 static void wcd_micbias_disable(struct wcd_mbhc *mbhc)
 {
 	if (mbhc->micbias_enable) {
+		#ifndef VENDOR_EDIT
+		/* Zhaoan.Xu@Multimedia.AudioDriver.Stability, 2019/04/11, Modify for checklist 861440*/
 		mbhc->mbhc_cb->mbhc_micb_ctrl_thr_mic(
 			mbhc->codec, MIC_BIAS_2, false);
+		#else
+		if (mbhc->mbhc_cb->mbhc_micb_ctrl_thr_mic) {
+			mbhc->mbhc_cb->mbhc_micb_ctrl_thr_mic(
+			    mbhc->codec, MIC_BIAS_2, false);
+		}
+		#endif /* VENDOR_EDIT */
 		if (mbhc->mbhc_cb->set_micbias_value)
 			mbhc->mbhc_cb->set_micbias_value(
 					mbhc->codec);
@@ -615,10 +637,16 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	enum wcd_mbhc_plug_type plug_type = MBHC_PLUG_TYPE_INVALID;
 	unsigned long timeout;
 	bool wrk_complete = false;
+	#ifndef VENDOR_EDIT
+	// Ming.Liu@MM.Audiodriver.Machine, 2019/08/27, Modify for disable cross connection
 	int pt_gnd_mic_swap_cnt = 0;
 	int no_gnd_mic_swap_cnt = 0;
+	#endif
 	bool is_pa_on = false, spl_hs = false, spl_hs_reported = false;
+	#ifndef VENDOR_EDIT
+	// Ming.Liu@MM.Audiodriver.Machine, 2019/08/27, Modify for disable cross connection
 	int ret = 0;
+	#endif
 	int spl_hs_count = 0;
 	int output_mv = 0;
 	int cross_conn;
@@ -715,6 +743,7 @@ correct_plug_type:
 								&spl_hs_count);
 			output_mv = wcd_measure_adc_once(mbhc, MUX_CTL_IN2P);
 
+			output_mv = wcd_measure_adc_once(mbhc, MUX_CTL_IN2P);
 			if (spl_hs_count == WCD_MBHC_SPL_HS_CNT) {
 				hs_threshold = (hs_threshold *
 				     wcd_mbhc_get_micbias(mbhc)) / micbias_mv;
@@ -726,7 +755,9 @@ correct_plug_type:
 		if (mbhc->mbhc_cb->hph_pa_on_status)
 			is_pa_on = mbhc->mbhc_cb->hph_pa_on_status(mbhc->codec);
 
-		if ((output_mv <= hs_threshold) &&
+		#ifndef VENDOR_EDIT
+		// Ming.Liu@MM.Audiodriver.Machine, 2019/08/27, Modify for disable cross connection
+                if ((output_mv <= hs_threshold) &&
 		    (!is_pa_on)) {
 			/* Check for cross connection*/
 			ret = wcd_check_cross_conn(mbhc);
@@ -779,6 +810,7 @@ correct_plug_type:
 				}
 			}
 		}
+		#endif
 
 		if (output_mv > hs_threshold) {
 			pr_debug("%s: cable is extension cable\n", __func__);
