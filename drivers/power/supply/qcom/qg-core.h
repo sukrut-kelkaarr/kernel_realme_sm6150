@@ -160,7 +160,6 @@ struct qpnp_qg {
 	ktime_t			last_user_update_time;
 	ktime_t			last_fifo_update_time;
 	unsigned long		last_maint_soc_update_time;
-	unsigned long		suspend_time;
 	struct iio_channel	*batt_therm_chan;
 	struct iio_channel	*batt_id_chan;
 
