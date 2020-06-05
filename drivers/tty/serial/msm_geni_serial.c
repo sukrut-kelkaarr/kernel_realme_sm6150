@@ -209,6 +209,14 @@ static int msm_geni_serial_get_ver_info(struct uart_port *uport);
 static struct msm_geni_serial_port msm_geni_console_port;
 static struct msm_geni_serial_port msm_geni_serial_ports[GENI_UART_NR_PORTS];
 
+#ifdef VENDOR_EDIT
+bool boot_with_console(void)
+{
+	return true;
+}
+EXPORT_SYMBOL(boot_with_console);
+#endif
+
 static void msm_geni_serial_config_port(struct uart_port *uport, int cfg_flags)
 {
 	if (cfg_flags & UART_CONFIG_TYPE)
