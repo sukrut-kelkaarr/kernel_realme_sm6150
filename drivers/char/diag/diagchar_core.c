@@ -2981,7 +2981,7 @@ long diagchar_ioctl(struct file *filp,
 static int diag_process_apps_data_hdlc(unsigned char *buf, int len,
 				       int pkt_type)
 {
-	int err = 0;
+	int err = 0, wait_err = 0;
 	int ret = PKT_DROP;
 	int retval = 0;
 	struct diag_apps_data_t *data = &hdlc_data;
@@ -3012,10 +3012,22 @@ static int diag_process_apps_data_hdlc(unsigned char *buf, int len,
 	send.last = (void *)(buf + len - 1);
 	send.terminate = 1;
 
-	retval = wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
-	if (retval)
-		return retval;
+wait_for_buffer:
+	wait_err = wait_event_interruptible_timeout(driver->hdlc_wait_q,
+			(data->flushed == 0),
+			msecs_to_jiffies(PKT_PROCESS_TIMEOUT));
+	if (wait_err <= 0) {
+		DIAG_LOG(DIAG_DEBUG_USERSPACE,
+		"diag: Timeout while waiting for hdlc buffer to be flushed, err: %d\n",
+		wait_err);
+		return PKT_DROP;
+	}
+	spin_lock_irqsave(&driver->diagmem_lock, flags);
+	if (data->flushed) {
+		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
+		goto wait_for_buffer;
+	}
+
 	if (!data->buf) {
 		spin_lock_irqsave(&driver->diagmem_lock, flags);
 		data->buf = diagmem_alloc(driver, DIAG_MAX_HDLC_BUF_SIZE +
@@ -3041,22 +3053,7 @@ static int diag_process_apps_data_hdlc(unsigned char *buf, int len,
 			ret = -EIO;
 			goto fail_free_buf;
 		}
-		retval = wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
-		if (retval)
-			return retval;
-		spin_lock_irqsave(&driver->diagmem_lock, flags);
-		data->buf = diagmem_alloc(driver, DIAG_MAX_HDLC_BUF_SIZE +
-					APF_DIAG_PADDING,
-					  POOL_TYPE_HDLC);
-		if (!data->buf) {
-			ret = PKT_DROP;
-			spin_unlock_irqrestore(&driver->diagmem_lock, flags);
-			goto fail_ret;
-		}
-		data->allocated = 1;
-		data->flushed = 0;
-		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
+		goto wait_for_buffer;
 	}
 
 	enc.dest = data->buf + data->len;
@@ -3138,9 +3135,8 @@ fail_ret:
 static int diag_process_apps_data_non_hdlc(unsigned char *buf, int len,
 					   int pkt_type)
 {
-	int err = 0;
+	int err = 0, wait_err = 0;
 	int ret = PKT_DROP;
-	int retval = 0;
 	struct diag_pkt_frame_t header;
 	struct diag_apps_data_t *data = &non_hdlc_data;
 	unsigned long flags;
@@ -3156,10 +3152,22 @@ static int diag_process_apps_data_non_hdlc(unsigned char *buf, int len,
 		       __func__, buf, len);
 		return -EIO;
 	}
-	retval = wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
-	if (retval)
-		return retval;
+wait_for_buffer:
+	wait_err = wait_event_interruptible_timeout(driver->hdlc_wait_q,
+					(data->flushed == 0),
+					msecs_to_jiffies(PKT_PROCESS_TIMEOUT));
+	if (wait_err <= 0) {
+		DIAG_LOG(DIAG_DEBUG_USERSPACE,
+		"diag: Timeout while waiting for non-hdlc buffer to be flushed, err: %d\n",
+		wait_err);
+		return PKT_DROP;
+	}
+
+	spin_lock_irqsave(&driver->diagmem_lock, flags);
+	if (data->flushed) {
+		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
+		goto wait_for_buffer;
+	}
 	if (!data->buf) {
 		spin_lock_irqsave(&driver->diagmem_lock, flags);
 		data->buf = diagmem_alloc(driver, DIAG_MAX_HDLC_BUF_SIZE +
@@ -3184,22 +3192,7 @@ static int diag_process_apps_data_non_hdlc(unsigned char *buf, int len,
 			ret = -EIO;
 			goto fail_free_buf;
 		}
-		retval = wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
-		if (retval)
-			return retval;
-		spin_lock_irqsave(&driver->diagmem_lock, flags);
-		data->buf = diagmem_alloc(driver, DIAG_MAX_HDLC_BUF_SIZE +
-					APF_DIAG_PADDING,
-					  POOL_TYPE_HDLC);
-		if (!data->buf) {
-			ret = PKT_DROP;
-			spin_unlock_irqrestore(&driver->diagmem_lock, flags);
-			goto fail_ret;
-		}
-		data->allocated = 1;
-		data->flushed = 0;
-		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
+		goto wait_for_buffer;
 	}
 
 	header.start = CONTROL_CHAR;
