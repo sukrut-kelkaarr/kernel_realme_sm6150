@@ -30,6 +30,13 @@
 #include <soc/oppo/device_info.h>
 #include "dsi_pwr.h"
 
+#include <linux/oppo_checks.h>
+
+/* Ambient screen check */
+bool device_is_dozing(void){
+	return on_ambient_screen;
+}
+
 extern int hbm_mode;
 #ifdef OPLUS_FEATURE_LCD_CABC
 extern int cabc_mode;
@@ -2574,6 +2581,8 @@ int dsi_display_oppo_set_power(struct drm_connector *connector,
 		pr_err("invalid display/panel\n");
 		return -EINVAL;
 	}
+
+	on_ambient_screen = (power_mode == 1 || power_mode == 2) ? true : false;
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
