@@ -2152,6 +2152,22 @@ static ssize_t oppo_display_notify_fp_press(struct device *dev,
 		return count;
 
 	pr_err("notify fingerpress %s\n", onscreenfp_status ? "on" : "off");
+
+	/* 
+	 * We have fingerprint pressed on the sensor
+	 * since we didn't return already so just do
+	 * a simple check and set the correct screen state
+	 * the rest is handled by userspace blobs.
+	 * also we set the AOD_HBM_ON cmd
+	 * there's no userspace way to do that while dozing
+	 */
+    if(device_is_dozing()){
+        mutex_lock(&display->panel->panel_lock);
+        err = dsi_panel_tx_cmd_set(display->panel, DSI_CMD_AOD_HBM_ON);
+        mutex_unlock(&display->panel->panel_lock);
+        set_oppo_display_scene(OPPO_DISPLAY_AOD_HBM_SCENE);
+       }
+
 	if (OPPO_DISPLAY_AOD_SCENE == get_oppo_display_scene()) {
 		if (onscreenfp_status) {
 			on_time = ktime_get();
