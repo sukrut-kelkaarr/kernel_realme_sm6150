@@ -38,6 +38,7 @@
 #include <drm/drm_mipi_dsi.h>
 #include "oppo_dsi_support.h"
 
+#include <linux/oppo_checks.h>
 
 int oppo_panel_update_backlight_unlock(struct dsi_panel *panel);
 
