@@ -1722,10 +1722,10 @@ int brightness_to_alpha(int brightness)
 {
 	int alpha;
 
-	if ( brightness == 1)
+	if (brightness == 1)
 		brightness = oppo_last_backlight;
 
-	if (oppo_dimlayer_hbm)
+	if (oppo_dimlayer_hbm && !device_is_dozing())
 		alpha = bl_to_alpha(brightness);
 	else
 		alpha = bl_to_alpha_dc(brightness);
