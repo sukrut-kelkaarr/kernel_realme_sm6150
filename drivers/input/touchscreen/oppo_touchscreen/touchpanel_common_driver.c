@@ -2048,7 +2048,7 @@ static ssize_t proc_is_dozing_rn(struct file *file, char __user *user_buf, size_
 	int ret = 0;
 	char page[PAGESIZE] = {0};
 
-	snprintf(page, PAGESIZE-1, "%d", "ambient_display_status()");
+	snprintf(page, PAGESIZE-1, "%d", ambient_display_status());
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, page, strlen(page));
 	return ret;
