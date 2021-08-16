@@ -992,6 +992,10 @@ struct earsense_proc_operations {
     void (*self_data_read)      (void *chip_data, char *earsense_self_data, int read_length);
 };
 
+static bool fod_proxcheck = false;
+static bool fod_tapcheck = false;
+static bool fod_wake = false;
+
 /*********PART3:function or variables for other files**********************/
 extern unsigned int tp_debug ;                                                            /*using for print debug log*/
 

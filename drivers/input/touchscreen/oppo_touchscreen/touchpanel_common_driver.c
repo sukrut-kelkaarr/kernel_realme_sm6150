@@ -180,6 +180,8 @@ void operate_mode_switch(struct touchpanel_data *ts)
     }
 
     if (ts->is_suspended) {
+        fod_tapcheck = false;
+        fod_wake = false;
         if (ts->black_gesture_support || ts->fingerprint_underscreen_support) {
             if ((ts->gesture_enable & 0x01) == 1 || ts->fp_enable) {
                 if (ts->single_tap_support && ts->ts_ops->enable_single_tap) {
@@ -544,6 +546,13 @@ static void tp_gesture_handle(struct touchpanel_data *ts)
         input_report_key(ts->input_dev, key, 0);
         input_sync(ts->input_dev);
     } else if (gesture_info_temp.gesture_type == FingerprintDown) {
+        if (fod_proxcheck) {
+            fod_wake = true;
+            input_report_key(ts->input_dev, KEY_WAKEUP, 1);
+            input_sync(ts->input_dev);
+            input_report_key(ts->input_dev, KEY_WAKEUP, 0);
+            input_sync(ts->input_dev);
+        }
         ts->fp_info.touch_state = 1;
         if (ts->screenoff_fingerprint_info_support) {
             ts->fp_info.x = gesture_info_temp.Point_start.x;
@@ -559,6 +568,8 @@ static void tp_gesture_handle(struct touchpanel_data *ts)
         }
         opticalfp_irq_handler(&ts->fp_info);
         notify_display_fpd(false);
+        if (fod_wake)
+            fod_tapcheck = true;
     }
 }
 
@@ -1977,6 +1988,111 @@ static ssize_t proc_glove_control_read(struct file *file, char __user *user_buf,
 static const struct file_operations proc_glove_control_fops = {
     .write = proc_glove_control_write,
     .read =  proc_glove_control_read,
+    .open = simple_open,
+    .owner = THIS_MODULE,
+};
+
+static ssize_t fod_prox_show(struct file *file, char __user *user_buf, size_t count, loff_t *ppos)
+{
+    char page[PAGESIZE] = {0};
+    snprintf(page, PAGESIZE-1, "%d\n", fod_proxcheck);
+    return simple_read_from_buffer(user_buf, count, ppos, page, strlen(page));
+}
+
+static ssize_t fod_prox_write(struct file *file, const char __user *user_buf, size_t count, loff_t *ppos)
+{
+    struct touchpanel_data *ts = PDE_DATA(file_inode(file));
+    int value = 0;
+    char buf[4] = {0};
+
+    if (count > 2 || !ts)
+        return count;
+
+    if (copy_from_user(buf, user_buf, count)) {
+        TPD_INFO("%s: read proc input error.\n", __func__);
+        return count;
+    }
+
+    sscanf(buf, "%d", &value);
+
+    fod_proxcheck = !!value;
+
+    return count;
+}
+
+static const struct file_operations fod_prox_control_fops = {
+    .write = fod_prox_write,
+    .read =  fod_prox_show,
+    .open = simple_open,
+    .owner = THIS_MODULE,
+};
+
+static ssize_t fod_tap_show(struct file *file, char __user *user_buf, size_t count, loff_t *ppos)
+{
+    char page[PAGESIZE] = {0};
+    snprintf(page, PAGESIZE-1, "%d\n", fod_tapcheck);
+    return simple_read_from_buffer(user_buf, count, ppos, page, strlen(page));
+}
+
+static ssize_t fod_tap_write(struct file *file, const char __user *user_buf, size_t count, loff_t *ppos)
+{
+    struct touchpanel_data *ts = PDE_DATA(file_inode(file));
+    int value = 0;
+    char buf[4] = {0};
+
+    if (count > 2 || !ts)
+        return count;
+
+    if (copy_from_user(buf, user_buf, count)) {
+        TPD_INFO("%s: read proc input error.\n", __func__);
+        return count;
+    }
+
+    sscanf(buf, "%d", &value);
+
+    fod_tapcheck = !!value;
+
+    return count;
+}
+
+static const struct file_operations fod_tap_control_fops = {
+    .write = fod_tap_write,
+    .read =  fod_tap_show,
+    .open = simple_open,
+    .owner = THIS_MODULE,
+};
+
+static ssize_t fod_wake_show(struct file *file, char __user *user_buf, size_t count, loff_t *ppos)
+{
+    char page[PAGESIZE] = {0};
+    snprintf(page, PAGESIZE-1, "%d\n", fod_wake);
+    return simple_read_from_buffer(user_buf, count, ppos, page, strlen(page));
+}
+
+static ssize_t fod_wake_write(struct file *file, const char __user *user_buf, size_t count, loff_t *ppos)
+{
+    struct touchpanel_data *ts = PDE_DATA(file_inode(file));
+    int value = 0;
+    char buf[4] = {0};
+
+    if (count > 2 || !ts)
+        return count;
+
+    if (copy_from_user(buf, user_buf, count)) {
+        TPD_INFO("%s: read proc input error.\n", __func__);
+        return count;
+    }
+
+    sscanf(buf, "%d", &value);
+
+    fod_wake = !!value;
+
+    return count;
+}
+
+static const struct file_operations fod_wake_control_fops = {
+    .write = fod_wake_write,
+    .read =  fod_wake_show,
     .open = simple_open,
     .owner = THIS_MODULE,
 };
@@ -3887,6 +4003,24 @@ static int init_touchpanel_proc(struct touchpanel_data *ts)
             ret = -ENOMEM;
             TPD_INFO("%s: Couldn't create proc entry, %d\n", __func__, __LINE__);
         }
+    }
+
+    prEntry_tmp = proc_create_data("fod_proxcheck", 0666, prEntry_tp, &fod_prox_control_fops, ts);
+    if (prEntry_tmp == NULL) {
+        ret = -ENOMEM;
+        TPD_INFO("%s: Couldn't create proc entry, %d\n", __func__, __LINE__);
+    }
+
+    prEntry_tmp = proc_create_data("fod_tapcheck", 0666, prEntry_tp, &fod_tap_control_fops, ts);
+    if (prEntry_tmp == NULL) {
+        ret = -ENOMEM;
+        TPD_INFO("%s: Couldn't create proc entry, %d\n", __func__, __LINE__);
+    }
+
+    prEntry_tmp = proc_create_data("fod_screenwake", 0666, prEntry_tp, &fod_wake_control_fops, ts);
+    if (prEntry_tmp == NULL) {
+        ret = -ENOMEM;
+        TPD_INFO("%s: Couldn't create proc entry, %d\n", __func__, __LINE__);
     }
 
     //proc files-step2-5:/proc/touchpanel/glove_mode_enable (Glove mode related interface)
