@@ -15,7 +15,7 @@
 ### ------------------------------------------------------------------------------
 ##################################################################################
 
--include ../../out/oplus_native_features.mk
+-include ./oplus_native_features.mk
 
 ###ifdef OPLUS_ARCH_INJECT
 OPLUS_CONNECTIVITY_NATIVE_FEATURE_SET :=
@@ -137,14 +137,6 @@ endif
 ifeq ($(OPLUS_FEATURE_DUMPDEVICE),yes)
 export CONFIG_OPLUS_FEATURE_DUMP_DEVICE_INFO=y
 KBUILD_CFLAGS += -DCONFIG_OPLUS_FEATURE_DUMP_DEVICE_INFO
-endif
-
-ifeq ($(OPLUS_FEATURE_SECURE_ROOTGUARD),yes)
-export CONFIG_OPLUS_ROOT_CHECK=y
-KBUILD_CFLAGS += -DCONFIG_OPLUS_ROOT_CHECK
-KBUILD_CPPFLAGS += -DCONFIG_OPLUS_ROOT_CHECK
-CFLAGS_KERNEL += -DCONFIG_OPLUS_ROOT_CHECK
-CFLAGS_MODULE += -DCONFIG_OPLUS_ROOT_CHECK
 endif
 
 ifeq ($(OPLUS_FEATURE_SECURE_MOUNTGUARD),yes)
