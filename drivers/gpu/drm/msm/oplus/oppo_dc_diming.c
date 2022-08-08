@@ -454,7 +454,10 @@ int sde_connector_update_hbm(struct drm_connector *connector)
 			if(OPPO_DISPLAY_AOD_HBM_SCENE == get_oppo_display_scene()) {
 				if (OPPO_DISPLAY_POWER_DOZE_SUSPEND == get_oppo_display_power_status() ||
 				    OPPO_DISPLAY_POWER_DOZE == get_oppo_display_power_status()) {
-					rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_AOD_HBM_OFF);
+                    if (sde_crtc_get_fingerprint_mode(c_conn->encoder->crtc->state))//fingerprint enables dimlayer so hbm should be on
+						rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_AOD_HBM_ON);
+					else
+						rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_AOD_HBM_OFF);
 #ifdef OPLUS_FEATURE_AOD_RAMLESS
 					if (dsi_display->panel->oppo_priv.is_aod_ramless) {
 						oppo_update_aod_light_mode_unlock(panel);
@@ -475,6 +478,9 @@ int sde_connector_update_hbm(struct drm_connector *connector)
 				/* Do nothing to skip hbm off */
 			} else if (OPPO_DISPLAY_AOD_SCENE == get_oppo_display_scene()) {
 				if(aod_hbm_off) {
+                if (sde_crtc_get_fingerprint_mode(c_conn->encoder->crtc->state))
+                    rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_AOD_HBM_ON);
+                else
 					rc = dsi_panel_tx_cmd_set(dsi_display->panel, DSI_CMD_AOD_HBM_OFF);
 #ifdef OPLUS_FEATURE_AOD_RAMLESS
 					if (dsi_display->panel->oppo_priv.is_aod_ramless) {
