@@ -340,12 +340,9 @@ static int ion_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 		return 0;
 
 	for (a = buffer->attachments; a; a = a->next) {
-		if (down_read_trylock(&a->map_rwsem)) {
-			if (a->dma_mapped)
-				dma_sync_sg_for_device(a->dev, a->table.sgl,
-						       a->table.nents, dir);
-			up_read(&a->map_rwsem);
-		}
+		if (a->dma_mapped)
+			dma_sync_sg_for_device(a->dev, a->table.sgl,
+					       a->table.nents, dir);
 	}
 
 	return 0;
