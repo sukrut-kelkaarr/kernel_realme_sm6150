@@ -17,5 +17,13 @@ source "drivers/soc/ti/Kconfig"
 source "drivers/soc/ux500/Kconfig"
 source "drivers/soc/versatile/Kconfig"
 source "drivers/soc/zte/Kconfig"
+source "drivers/soc/oplus/Kconfig"
 
+#ifdef VENDOR_EDIT
+source "drivers/soc/oppo/Kconfig"
+#endif
+
+#ifdef OPLUS_FEATURE_SENSOR_SMEM
+source "drivers/soc/oplus/sensor/Kconfig"
+#endif /* OPLUS_FEATURE_SENSOR_SMEM */
 endmenu

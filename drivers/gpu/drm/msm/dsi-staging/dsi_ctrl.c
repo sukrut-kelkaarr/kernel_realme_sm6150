@@ -81,6 +81,10 @@ static const struct of_device_id msm_dsi_of_match[] = {
 	{}
 };
 
+// #ifdef OPLUS_BUG_STABILITY
+u32 g_scramble_switch_value = 0;
+// #endif /*OPLUS_BUG_STABILITY*/
+
 #ifdef CONFIG_DEBUG_FS
 static ssize_t debugfs_state_info_read(struct file *file,
 				       char __user *buff,
@@ -1756,7 +1760,12 @@ static int dsi_ctrl_dts_parse(struct dsi_ctrl *dsi_ctrl,
 					dsi_ctrl != NULL, of_node != NULL);
 		return -EINVAL;
 	}
-
+// #ifdef OPLUS_BUG_STABILITY
+	rc = of_property_read_u32(of_node, "oplus,scramble-switch", &g_scramble_switch_value);
+        if (rc) {
+                pr_debug("of_property_read_u32() failed\n");
+        }
+// #endif /*OPLUS_BUG_STABILITY*/
 	rc = of_property_read_u32(of_node, "cell-index", &index);
 	if (rc) {
 		pr_debug("cell index not set, default to 0\n");
@@ -2397,7 +2406,11 @@ static void dsi_ctrl_handle_error_status(struct dsi_ctrl *dsi_ctrl,
 							0, 0, 0, 0);
 			}
 		}
+		#ifndef OPLUS_BUG_STABILITY
 		pr_err("tx timeout error: 0x%lx\n", error);
+		#else /* OPLUS_BUG_STABILITY */
+		pr_err_ratelimited("tx timeout error: 0x%lx\n", error);
+		#endif /* OPLUS_BUG_STABILITY */
 	}
 
 	/* DSI FIFO OVERFLOW error */
@@ -2632,8 +2645,7 @@ void dsi_ctrl_disable_status_interrupt(struct dsi_ctrl *dsi_ctrl,
 {
 	unsigned long flags;
 
-	if (!dsi_ctrl || dsi_ctrl->irq_info.irq_num == -1 ||
-			intr_idx >= DSI_STATUS_INTERRUPT_COUNT)
+	if (!dsi_ctrl || intr_idx >= DSI_STATUS_INTERRUPT_COUNT)
 		return;
 
 	spin_lock_irqsave(&dsi_ctrl->irq_info.irq_lock, flags);
@@ -2645,7 +2657,8 @@ void dsi_ctrl_disable_status_interrupt(struct dsi_ctrl *dsi_ctrl,
 					dsi_ctrl->irq_info.irq_stat_mask);
 
 			/* don't need irq if no lines are enabled */
-			if (dsi_ctrl->irq_info.irq_stat_mask == 0)
+			if (dsi_ctrl->irq_info.irq_stat_mask == 0 &&
+					dsi_ctrl->irq_info.irq_num != -1)
 				disable_irq_nosync(dsi_ctrl->irq_info.irq_num);
 		}
 

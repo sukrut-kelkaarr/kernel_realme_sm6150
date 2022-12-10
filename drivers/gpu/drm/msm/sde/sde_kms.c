@@ -50,6 +50,11 @@
 #include <soc/qcom/scm.h>
 #include "soc/qcom/secure_buffer.h"
 
+#ifdef OPLUS_BUG_STABILITY
+#include "oppo_display_private_api.h"
+#include "oppo_onscreenfingerprint.h"
+#endif /* OPLUS_BUG_STABILITY */
+
 #define CREATE_TRACE_POINTS
 #include "sde_trace.h"
 
@@ -1234,7 +1239,7 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 {
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *old_crtc_state;
-	int i, rc;
+	int i;
 
 	if (!kms || !old_state || !old_state->dev || !old_state->acquire_ctx) {
 		SDE_ERROR("invalid argument(s)\n");
@@ -1242,15 +1247,6 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 	}
 
 	SDE_ATRACE_BEGIN("sde_kms_prepare_fence");
-retry:
-	/* attempt to acquire ww mutex for connection */
-	rc = drm_modeset_lock(&old_state->dev->mode_config.connection_mutex,
-			       old_state->acquire_ctx);
-
-	if (rc == -EDEADLK) {
-		drm_modeset_backoff(old_state->acquire_ctx);
-		goto retry;
-	}
 
 	/* old_state actually contains updated crtc pointers */
 	for_each_crtc_in_state(old_state, crtc, old_crtc_state, i) {
@@ -1386,7 +1382,11 @@ static int _sde_kms_setup_displays(struct drm_device *dev,
 		.soft_reset   = dsi_display_soft_reset,
 		.pre_kickoff  = dsi_conn_pre_kickoff,
 		.clk_ctrl = dsi_display_clk_ctrl,
+#ifdef OPLUS_BUG_STABILITY
+		.set_power = dsi_display_oppo_set_power,
+#else
 		.set_power = dsi_display_set_power,
+#endif /* OPLUS_BUG_STABILITY */
 		.get_mode_info = dsi_conn_get_mode_info,
 		.get_dst_format = dsi_display_get_dst_format,
 		.post_kickoff = dsi_conn_post_kickoff,
