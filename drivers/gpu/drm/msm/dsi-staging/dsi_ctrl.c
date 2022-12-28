@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -123,6 +123,9 @@ static ssize_t debugfs_state_info_read(struct file *file,
 			dsi_ctrl->clk_freq.pix_clk_rate,
 			dsi_ctrl->clk_freq.esc_clk_rate);
 
+	if (len > count)
+		len = count;
+
 	len = min_t(size_t, len, SZ_4K);
 	if (copy_to_user(buff, buf, len)) {
 		kfree(buf);
@@ -177,6 +180,9 @@ static ssize_t debugfs_reg_dump_read(struct file *file,
 		kfree(buf);
 		return rc;
 	}
+
+	if (len > count)
+		len = count;
 
 	len = min_t(size_t, len, SZ_4K);
 	if (copy_to_user(buff, buf, len)) {
@@ -1932,7 +1938,6 @@ static struct platform_driver dsi_ctrl_driver = {
 	},
 };
 
-#if defined(CONFIG_DEBUG_FS)
 
 void dsi_ctrl_debug_dump(u32 *entries, u32 size)
 {
@@ -1954,7 +1959,6 @@ void dsi_ctrl_debug_dump(u32 *entries, u32 size)
 	mutex_unlock(&dsi_ctrl_list_lock);
 }
 
-#endif
 /**
  * dsi_ctrl_get() - get a dsi_ctrl handle from an of_node
  * @of_node:    of_node of the DSI controller.
@@ -2660,7 +2664,7 @@ void dsi_ctrl_disable_status_interrupt(struct dsi_ctrl *dsi_ctrl,
 
 			/* don't need irq if no lines are enabled */
 			if (dsi_ctrl->irq_info.irq_stat_mask == 0 &&
-					dsi_ctrl->irq_info.irq_num != -1)
+				dsi_ctrl->irq_info.irq_num != -1)
 				disable_irq_nosync(dsi_ctrl->irq_info.irq_num);
 		}
 

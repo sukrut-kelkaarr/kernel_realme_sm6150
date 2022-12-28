@@ -95,25 +95,7 @@ struct nf_conn {
 	struct hlist_node	nat_bysource;
 #endif
 	/* all members below initialized via memset */
-	u8 __nfct_init_offset[0];
-        //#ifdef OPLUS_FEATURE_WIFI_SLA
-	u32 oplus_game_skb_len;
-	u32 oplus_game_detect_status;
-	u32 oplus_game_time_interval;
-	u32 oplus_game_up_count;
-	u32 oplus_game_down_count;
-	u32 oplus_game_lost_count;
-	u32 oplus_game_same_count;
-	u32 oplus_http_flag;
-	u32 oplus_skb_count;
-	int oplus_app_type;
-	s64 oplus_game_timestamp;
-	s64 oplus_game_last_timestamp;
-	//#endif /* OPLUS_FEATURE_WIFI_SLA */
-
-#ifdef OPLUS_FEATURE_WIFI_LUCKYMONEY
-	u32 oplus_app_uid;
-	#endif /* OPLUS_FEATURE_WIFI_LUCKYMONEY */
+	struct { } __nfct_init_offset;
 
 	/* If we were expected by an expectation, this will be it */
 	struct nf_conn *master;
