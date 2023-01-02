@@ -11,7 +11,6 @@
 
 
 #ifdef VENDOR_EDIT
-//YanGang@BSP.CHG.Basic, 2020/01/16, add for new dischg plan.
 #define USB_20C 20
 #define USB_30C 30
 #define USB_40C	40
@@ -175,7 +174,11 @@ void oplus_usbtemp_recover_func(struct oplus_chg_chip *chip)
 	if (level == 1) {
 		oplus_set_usbtemp_wakelock(true);
 		do {
-			get_usb_temp(chip);
+			if (19721 != get_project()) {
+				get_usb_temp(chip);
+			} else {
+				chip->chg_ops->get_usbtemp_volt(chip);
+			}
 			pr_err("[OPLUS_USBTEMP] recovering......");
 			msleep(2000);
 			count_time++;
@@ -260,8 +263,6 @@ void oplus_update_usbtemp_current_status(struct oplus_chg_chip *chip)
 
 	return;
 }
-
-
 int oplus_usbtemp_monitor_common(void *data)
 {
 	int delay = 0;
@@ -276,11 +277,14 @@ int oplus_usbtemp_monitor_common(void *data)
 	int count_r = 1, count_l = 1;
 	bool condition1 = false;
 	bool condition2 = false;
+	unsigned int project;
 	struct oplus_chg_chip *chip = (struct oplus_chg_chip *) data;
 #ifndef CONFIG_OPLUS_CHARGER_MTK
 	struct smb_charger *chg = NULL;
 	chg = &chip->pmic_spmi.smb5_chip->chg;
 #endif
+	project = get_project();
+
 	pr_err("[oplus_usbtemp_monitor_main]:run first!");
 
 	while (!kthread_should_stop()) {
@@ -297,7 +301,11 @@ int oplus_usbtemp_monitor_common(void *data)
 			pr_err("[oplus_usbtemp_monitor_main]:get_usbtemp_volt is NULL");
 			return 0;
 		}
-		get_usb_temp(chip);
+		if (project != 19721)
+			get_usb_temp(chip);
+		 else
+			chip->chg_ops->get_usbtemp_volt(chip);
+
 		if ((chip->usb_temp_l < USB_50C) && (chip->usb_temp_r < USB_50C)){//get vbus when usbtemp < 50C
 			vbus_volt = chip->chg_ops->get_charger_volt();
 		} else{
@@ -310,7 +318,6 @@ int oplus_usbtemp_monitor_common(void *data)
             		delay = MIN_MONITOR_INTERVAL;
             		total_count = 30;
        		}
-			
 		oplus_update_usbtemp_current_status(chip);
 
 		if ((chip->usbtemp_volt_l < USB_50C) && (chip->usbtemp_volt_r < USB_50C) && (vbus_volt < VBUS_VOLT_THRESHOLD))
@@ -321,7 +328,12 @@ int oplus_usbtemp_monitor_common(void *data)
 			pr_err("in loop 1");
 			for (i = 1; i < retry_cnt; i++) {
 				mdelay(RETRY_CNT_DELAY);
-				get_usb_temp(chip);
+
+				if (project != 19721)
+					get_usb_temp(chip);
+				 else
+					chip->chg_ops->get_usbtemp_volt(chip);
+
 				if (chip->usb_temp_r >= USB_57C)
 					count_r++;
 				if (chip->usb_temp_l >= USB_57C)
@@ -346,7 +358,12 @@ int oplus_usbtemp_monitor_common(void *data)
 			pr_err("in loop 1");
 			for (i = 1; i < retry_cnt; i++) {
 				mdelay(RETRY_CNT_DELAY);
+
+			if (project != 19721)
 				get_usb_temp(chip);
+			 else
+				chip->chg_ops->get_usbtemp_volt(chip);
+
 				if (chip->usb_temp_r >= chip->tbatt_temp/10 + 7)
 					count_r++;
 				if (chip->usb_temp_l >= chip->tbatt_temp/10 + 7)
@@ -385,7 +402,12 @@ int oplus_usbtemp_monitor_common(void *data)
 			if (((current_temp_l - last_usb_temp_l) >= 3) || (current_temp_r - last_usb_temp_r) >= 3) {
 				for (i = 1; i < retry_cnt; i++) {
 					mdelay(RETRY_CNT_DELAY);
-					get_usb_temp(chip);
+
+					if (project != 19721)
+						get_usb_temp(chip);
+					 else
+						chip->chg_ops->get_usbtemp_volt(chip);
+
 					if ((chip->usb_temp_r - last_usb_temp_r) >= 3)
 						count_r++;
 					if ((chip->usb_temp_l - last_usb_temp_l) >= 3)

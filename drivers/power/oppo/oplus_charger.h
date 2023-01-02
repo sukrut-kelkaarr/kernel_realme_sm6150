@@ -5,11 +5,9 @@
 *                  Manage all charger IC and define abstarct function flow.
 * Version   : 1.0
 * Date      : 2015-06-22
-* Author    : fanhui@PhoneSW.BSP
 *           : Fanhong.Kong@ProDrv.CHG
 * ------------------------------ Revision History: --------------------------------
 * <version>         <date>              <author>                      <desc>
-* Revision 1.0    2015-06-22      fanhui@PhoneSW.BSP          Created for new architecture
 * Revision 1.0    2015-06-22      Fanhong.Kong@ProDrv.CHG     Created for new architecture
 ***********************************************************************************/
 
@@ -271,6 +269,11 @@ typedef enum {
 	CHARGER_SUBTYPE_PD,
 	CHARGER_SUBTYPE_QC,
 }OPLUS_CHARGER_SUBTYPE;
+
+typedef enum {
+	SHIP_MODE_NOT_CONFIG = 0,
+	SHIP_MODE_PLATFORM,
+}OPLUS_SHIP_MODE_CONFIG;
 
 typedef enum {
 	VOOC_ADAPTER_1 = 0x13,
@@ -601,6 +604,7 @@ struct oplus_chg_chip {
 	struct delayed_work update_work;
 	struct delayed_work ui_soc_decimal_work;
 	struct delayed_work  mmi_adapter_in_work;
+	struct delayed_work  reset_adapter_work;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0))
 	struct wake_lock suspend_lock;
 #else
@@ -750,7 +754,7 @@ struct oplus_chg_chip {
 	wait_queue_head_t oplus_usbtemp_wq;
 	int usbtemp_batttemp_gap;
 	int usbtemp_batttemp_high_gap;
-	int ship_mode;
+	int ship_mode_config;
 	int smooth_to_soc_gap;
 	int smart_charge_version;
 	int ui_soc_decimal_speedmin;
@@ -759,11 +763,6 @@ struct oplus_chg_chip {
 	struct thermal_zone_device *shell_themal;
 	int pd_svooc;
 	int pd_chging;
-
-	int soc_ajust;
-	int modify_soc;
-	ktime_t interval_1;
-	ktime_t interval_2;
 };
 
 
@@ -933,7 +932,6 @@ void oplus_chg_variables_reset(struct oplus_chg_chip *chip, bool in);
 void oplus_chg_external_power_changed(struct power_supply *psy);
 #endif
 int oplus_is_rf_ftm_mode(void);
-//huangtongfeng@BSP.CHG.Basic, 2017/01/13, add for kpoc charging param.
 int oplus_get_charger_chip_st(void);
 void oplus_chg_set_allow_switch_to_fastchg(bool allow);
 int oplus_tbatt_power_off_task_init(struct oplus_chg_chip *chip);
@@ -951,5 +949,6 @@ bool oplus_chg_wake_up_ui_soc_decimal(void);
 void oplus_chg_ui_soc_decimal_init(void);
 bool oplus_chg_get_boot_completed(void);
 int oplus_chg_match_temp_for_chging(void);
+void oplus_chg_reset_adapter(void);
 
 #endif /*_OPLUS_CHARGER_H_*/

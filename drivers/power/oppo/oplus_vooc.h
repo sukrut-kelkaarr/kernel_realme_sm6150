@@ -5,11 +5,9 @@
 *             Manage all charger IC and define abstarct function flow.
 * Version   : 1.0
 * Date      : 2015-05-22
-* Author    : fanhui@PhoneSW.BSP
 *           : Fanhong.Kong@ProDrv.CHG
 * ------------------------------ Revision History: --------------------------------
 * <version>           <date>                <author>                               <desc>
-* Revision 1.0        2015-05-22        fanhui@PhoneSW.BSP                 Created for new architecture
 * Revision 1.0        2015-05-22        Fanhong.Kong@ProDrv.CHG            Created for new architecture
 * Revision 2.0        2018-04-14        Fanhong.Kong@ProDrv.CHG            Upgrade for SVOOC
 ***********************************************************************************/
@@ -155,6 +153,7 @@ struct oplus_vooc_chip {
 	bool need_to_up;
 	bool have_updated;
 	bool mcu_update_ing;
+	bool mcu_update_finish;
 	bool mcu_boot_by_gpio;
 	const unsigned char *firmware_data;
 	unsigned int fw_data_count;
@@ -164,13 +163,11 @@ struct oplus_vooc_chip {
 	int adapter_update_report;
 	int dpdm_switch_mode;
 	bool support_vooc_by_normal_charger_path;
-/* wenbin.liu@BSP.CHG.Vooc, 2016/10/20*/
 /* Add for vooc batt 4.40*/
 	bool batt_type_4400mv;
 	bool vooc_fw_check;
 	bool support_single_batt_svooc;
 	int vooc_fw_type;
-//PengNan@BSP.CHG.Vooc, 2018/02/28, add for vooc fw update.
 	int fw_update_flag;
 	struct manufacture_info manufacture_info;
 	bool vooc_fw_update_newmethod;
@@ -240,6 +237,7 @@ struct oplus_vooc_cp {
 	int (*cp_hardware_init_svooc)(void);
 	int (*cp_hardware_init_vooc)(void);
 	int (*oplus_reset_cp)(void);
+	int (*oplus_config_cp)(void);
 	int (*enable_cp_for_otg)(int en);
 	int (*enalbe_ovp)(int en);
 	int (*cp_hardware_init_pdqc)(void);
@@ -317,6 +315,7 @@ bool oplus_vooc_get_btb_temp_over(void);
 void oplus_vooc_reset_fastchg_after_usbout(void);
 void oplus_vooc_switch_fast_chg(void);
 void oplus_vooc_reset_mcu(void);
+int oplus_vooc_get_reset_gpio_status(void);
 void oplus_vooc_set_mcu_sleep(void);
 void oplus_vooc_set_vooc_chargerid_switch_val(int value);
 void oplus_vooc_set_ap_clk_high(void);
@@ -346,4 +345,7 @@ bool opchg_get_mcu_update_state(void);
 void oplus_vooc_reset_temp_range(struct oplus_vooc_chip *chip);
 void oplus_vooc_check_set_mcu_sleep(void);
 bool oplus_vooc_get_reset_adapter_st(void);
+bool oplus_vooc_get_mcu_update_finish_status(void);
+void oplus_vooc_set_update_finish_status_false(void);
+int oplus_vooc_get_reset_active_status(void);
 #endif /* _OPLUS_VOOC_H */

@@ -430,7 +430,7 @@ int bq2597x_hardware_init_pd_qc(void) {
 		bq_err("bq2597x_hardware_init_pd_qc Failed: charger_ic  is null\r\n")
 	}
 	ret = bq2597x_write_byte(bq, 0x6, 0x46);
-	ret = bq2597x_write_byte(bq, 0x0e, 0x24);
+	ret = bq2597x_write_byte(bq, 0x0e, 0x48);
 
 	return 0;
 }
@@ -441,6 +441,7 @@ int bq2597x_hardware_init_svooc(void) {
 	if (!charger_ic) {
 		bq_err("bq2597x_hardware_init Failed: charger_ic  is null\r\n")
 	}
+	ret = bq2597x_write_byte(bq, 0x0f, 0x02);
 	ret = bq2597x_write_byte(bq, 0x0, 0x78);
 	ret = bq2597x_write_byte(bq, 0x1, 0xc6);
 	ret = bq2597x_write_byte(bq, 0x2, 0xda);
@@ -449,20 +450,19 @@ int bq2597x_hardware_init_svooc(void) {
 	ret = bq2597x_write_byte(bq, 0x5, 0x48);
 	ret = bq2597x_write_byte(bq, 0x6, 0x5a);
 	ret = bq2597x_write_byte(bq, 0x7, 0xda);
-	ret = bq2597x_write_byte(bq, 0x8, 0x12);
+	ret = bq2597x_write_byte(bq, 0x8, 0x13);
 	ret = bq2597x_write_byte(bq, 0x9, 0x9c);
 	ret = bq2597x_write_byte(bq, 0x0a, 0x68);
 	ret = bq2597x_write_byte(bq, 0x0b, 0xc8);
 	ret = bq2597x_write_byte(bq, 0x0c, 0x66);
 	ret = bq2597x_write_byte(bq, 0x0d, 0x66);
 	ret = bq2597x_write_byte(bq, 0x0e, 0x48);
-	ret = bq2597x_write_byte(bq, 0x0f, 0x02);
-	ret = bq2597x_write_byte(bq, 0x10, 0x90);
-	ret = bq2597x_write_byte(bq, 0x11, 0x5f);
-	ret = bq2597x_write_byte(bq, 0x12, 0x14);
+	ret = bq2597x_write_byte(bq, 0x10, 0x70);
+	ret = bq2597x_write_byte(bq, 0x11, 0x6f);
+	ret = bq2597x_write_byte(bq, 0x12, 0x30);
 	ret = bq2597x_write_byte(bq, 0x23, 0x90);
 	ret = bq2597x_write_byte(bq, 0x24, 0x44);
-	bq2597x_dump_reg();
+	/*bq2597x_dump_reg(); */
 	printk(KERN_NOTICE "[OPLUS_CHG][bq2597x_hardware_init_svooc]\r\n");
 
 	return 0;
@@ -491,12 +491,12 @@ int bq2597x_hardware_init_normal_vooc(void) {
 	ret = bq2597x_write_byte(bq, 0x0c, 0x66);
 	ret = bq2597x_write_byte(bq, 0x0d, 0x66);
 	ret = bq2597x_write_byte(bq, 0x0e, 0x00);
-	ret = bq2597x_write_byte(bq, 0x10, 0x90);
-	ret = bq2597x_write_byte(bq, 0x11, 0x5f);
-	ret = bq2597x_write_byte(bq, 0x12, 0x44);
+	ret = bq2597x_write_byte(bq, 0x10, 0x70);
+	ret = bq2597x_write_byte(bq, 0x11, 0x6f);
+	ret = bq2597x_write_byte(bq, 0x12, 0x30);
 	ret = bq2597x_write_byte(bq, 0x23, 0x90);
 	ret = bq2597x_write_byte(bq, 0x24, 0x44);
-	bq2597x_dump_reg();
+	/*bq2597x_dump_reg(); */
 	printk(KERN_NOTICE "[OPLUS_CHG][bq2597x_hardware_init_normal_vooc]\r\n");
 
 	return 0;
@@ -523,7 +523,7 @@ static int bq2597x_enable_charge(struct bq2597x *bq, bool enable) {
 		ret = bq2597x_read_byte(bq, 0x0f, &val);
 	}
 
-	bq_err("lkl bq2597x_enable_charge 0X0F = 0x%x enable = %d\n", val, enable);
+	bq_err("bq2597x_enable_charge 0X0F = 0x%x enable = %d\n", val, enable);
 
 	return ret;
 }
@@ -548,17 +548,41 @@ int bq2597x_reset_cp(struct bq2597x *bq) {
 	ret = bq2597x_write_byte(bq, 0x0f, val);
 	ret = bq2597x_read_byte(bq, 0x0f, &val);
 
-	bq_err("lkl bq2597x_reset_cp 0X0F = 0x%x\n", val);
+	bq_err("bq2597x_reset_cp 0X0F = 0x%x\n", val);
 	return ret;
+}
+
+int oplus_bq2597x_config_cp(void) {
+	struct bq2597x *bq = charger_ic;
+	int ret;
+	if (!charger_ic) {
+		bq_err("oplus_bq2597x_config_cp Failed: charger_ic  is null\r\n");
+		return 0;
+	}
+
+	ret = bq2597x_write_byte(bq, 0x6, 0x46);
+	ret = bq2597x_write_byte(bq, 0x0a, 0x68);
+	ret = bq2597x_write_byte(bq, 0x0b, 0xc8);
+	ret = bq2597x_write_byte(bq, 0x0c, 0x66);
+	ret = bq2597x_write_byte(bq, 0x0d, 0x66);
+	ret = bq2597x_write_byte(bq, 0x0e, 0x48);
+	ret = bq2597x_write_byte(bq, 0x0f, 0x02);
+	ret = bq2597x_write_byte(bq, 0x10, 0x74);
+	ret = bq2597x_write_byte(bq, 0x23, 0x00);
+	ret = bq2597x_write_byte(bq, 0x24, 0x00);
+	bq_err("oplus_bq2597x_config_cp ok \r\n");
+	return 0;
 }
 
 int oplus_bq2597x_reset_cp(void) {
 	struct bq2597x *bq = charger_ic;
 	if (!charger_ic) {
 		bq_err("bq2597x_hardware_init Failed: charger_ic  is null\r\n");
+		return 0;
 	}
 
 	bq2597x_reset_cp(bq);
+	oplus_bq2597x_config_cp();
 	bq_err("oplus_bq2597x_reset_cp ok \r\n");
 	return 0;
 }
@@ -577,8 +601,7 @@ int oplus_bq2597x_otg_en(int en) {
 	} else {
 		ret = bq2597x_write_byte(bq, 0x0e, 0x26);
 		ret = bq2597x_write_byte(bq, 0x0f, 0x02);
-		bq2597x_reset_cp(bq);
-		ret = bq2597x_write_byte(bq, 0x0e, 0x24);
+		oplus_bq2597x_reset_cp();
 	}
 
 	return 0;
@@ -593,7 +616,7 @@ int oplus_bq2597x_ovp_en(int en) {
 	}
 
 	if (en) {
-		bq2597x_reset_cp(bq);
+		oplus_bq2597x_reset_cp();
 	} else {
 		ret = bq2597x_write_byte(bq, 0x0f, 0x4);
 	}
@@ -2339,6 +2362,7 @@ struct oplus_vooc_cp oplus_rkbq2597x_ops = {
 		.cp_hardware_init_vooc = bq2597x_hardware_init_normal_vooc,
 		.cp_hardware_init_pdqc = bq2597x_hardware_init_pd_qc,
 		.oplus_reset_cp = oplus_bq2597x_reset_cp,
+		.oplus_config_cp = oplus_bq2597x_config_cp,
 		.enalbe_ovp = oplus_bq2597x_ovp_en,
 		.enable_cp_for_otg = oplus_bq2597x_otg_en
 };
@@ -2470,6 +2494,7 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 
 	oplus_vooc_init_cp(&oplus_rkbq2597x_ops);
 	bq_err("bq2597x probe successfully, Part Num:%d\n!", bq->part_no);
+	oplus_bq2597x_reset_cp();
 	bq2597x_dump_reg();
 
 	return 0;

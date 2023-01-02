@@ -878,6 +878,11 @@ static int stm8s_driver_probe(struct i2c_client *client,
 		chip->fw_data_count = sizeof(Stm8s_fw_data_4400_svooc_6500MA_8250_link_lite);
 		chip->fw_data_version = Stm8s_fw_data_4400_svooc_6500MA_8250_link_lite[chip->fw_data_count - 4];
 		break;
+	case VOOC_FW_TYPE_STM8S_4400_VOOC_FFC_5V6A_19721:
+		chip->firmware_data = Stm8s_firmware_data_4400mv_fee1;
+		chip->fw_data_count = sizeof(Stm8s_firmware_data_4400mv_fee1);
+		chip->fw_data_version = Stm8s_firmware_data_4400mv_fee1[chip->fw_data_count - 4];
+		break;
 		default:
 			break;
 	}

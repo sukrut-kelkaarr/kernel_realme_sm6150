@@ -13,7 +13,6 @@
 ** --------------------------- Revision History: ------------------------------------------------------------
 * <version>       <date>        <author>                                <desc>
 * Revision 1.0    2015-06-22    Fanhong.Kong@ProDrv.CHG                 Created for new architecture
-* Revision 2.0    2018-3-31     YIchun.Chen@BSP.CHG                     ADD for log
 ************************************************************************************************************/
 
 #ifdef CONFIG_OPLUS_CHARGER_MTK
@@ -615,6 +614,7 @@ int oplus_vooc_asic_hwid_check(struct oplus_vooc_chip *chip)
 				return OPLUS_VOOC_ASIC_HWID_NON_EXIST;
 			}
 		}
+		gpio_direction_input(chip->vooc_gpio.vooc_asic_id_gpio);
 		chg_err("chip->vooc_gpio.vooc_asic_id_gpio =%d\n",
 			chip->vooc_gpio.vooc_asic_id_gpio);
 	}
@@ -924,14 +924,14 @@ void opchg_set_reset_sleep(struct oplus_vooc_chip *chip)
 	mutex_lock(&chip->pinctrl_mutex);
 	gpio_direction_output(chip->vooc_gpio.switch1_gpio, 0);	/* in 0*/
 	gpio_direction_output(chip->vooc_gpio.reset_gpio, 0); /* out 0 */
-	usleep_range(10000, 10000);
+	usleep_range(5000, 5000);
 #ifdef CONFIG_OPLUS_CHARGER_MTK
 	pinctrl_select_state(chip->vooc_gpio.pinctrl, chip->vooc_gpio.gpio_reset_sleep); /* PULL_down */
 #else
 	pinctrl_select_state(chip->vooc_gpio.pinctrl, chip->vooc_gpio.gpio_reset_active); /* PULL_up */
 #endif
 	gpio_set_value(chip->vooc_gpio.reset_gpio, 1);
-	usleep_range(10000, 10000);
+	usleep_range(5000, 5000);
 	gpio_direction_output(chip->vooc_gpio.reset_gpio, 0); /* out 0 */
 	usleep_range(1000, 1000);
 	mutex_unlock(&chip->pinctrl_mutex);
@@ -940,16 +940,20 @@ void opchg_set_reset_sleep(struct oplus_vooc_chip *chip)
 
 void opchg_set_reset_active(struct oplus_vooc_chip *chip)
 {
-	int active_level = 0;
-	int sleep_level = 1;
-	int mcu_hwid_type = OPLUS_VOOC_MCU_HWID_UNKNOW;
-
 	if (chip->adapter_update_real == ADAPTER_FW_NEED_UPDATE
 			|| chip->btb_temp_over || chip->mcu_update_ing) {
 		chg_debug(" adapter_fw_need_update:%d,btb_temp_over:%d,mcu_update_ing:%d,return\n",
 			chip->adapter_update_real, chip->btb_temp_over, chip->mcu_update_ing);
 		return;
 	}
+	opchg_set_reset_active_force(chip);
+}
+
+void opchg_set_reset_active_force(struct oplus_vooc_chip *chip)
+{
+	int active_level = 0;
+	int sleep_level = 1;
+	int mcu_hwid_type = OPLUS_VOOC_MCU_HWID_UNKNOW;
 
 	mcu_hwid_type = get_vooc_mcu_type(chip);
 	if (mcu_hwid_type == OPLUS_VOOC_ASIC_HWID_RK826
@@ -975,7 +979,7 @@ void opchg_set_reset_active(struct oplus_vooc_chip *chip)
 	gpio_set_value(chip->vooc_gpio.reset_gpio, sleep_level);
 	usleep_range(10000, 10000);
 	gpio_set_value(chip->vooc_gpio.reset_gpio, active_level);
-	usleep_range(2500, 2500);
+	usleep_range(5000, 5000);
 	if (chip->dpdm_switch_mode == VOOC_CHARGER_MODE) {
 		gpio_direction_output(chip->vooc_gpio.switch1_gpio, 1);	/* in 1*/
 	}
@@ -1024,7 +1028,7 @@ static void delay_reset_mcu_work_func(struct work_struct *work)
 	struct oplus_vooc_chip *chip = container_of(dwork,
 		struct oplus_vooc_chip, delay_reset_mcu_work);
 	opchg_set_clock_sleep(chip);
-	opchg_set_reset_active(chip);
+	oplus_vooc_reset_mcu();
 }
 
 void oplus_vooc_delay_reset_mcu_init(struct oplus_vooc_chip *chip)
@@ -1132,7 +1136,7 @@ void switch_fast_chg(struct oplus_vooc_chip *chip)
 				chg_err(" fastchg_allow false, to_warm true, don't switch to vooc mode\n");
 			} else {
 				opchg_set_clock_sleep(chip);
-				opchg_set_reset_active(chip);
+				oplus_vooc_reset_mcu();
 				opchg_set_switch_mode(chip, VOOC_CHARGER_MODE);
 			}
 		}
@@ -1358,6 +1362,7 @@ void reset_fastchg_after_usbout(struct oplus_vooc_chip *chip)
 		if (oplus_vooc_get_fastchg_dummy_started() == false) {
 			oplus_vooc_check_set_mcu_sleep();
 		}
+		vooc_reset_cp();
 	}
 	oplus_vooc_set_fastchg_to_normal_false();
 	oplus_vooc_set_fastchg_to_warm_false();
@@ -1435,6 +1440,8 @@ void oplus_vooc_eint_register(struct oplus_vooc_chip *chip)
 	retval = request_irq(chip->vooc_gpio.data_irq, irq_rx_handler, IRQF_TRIGGER_RISING, "mcu_data", chip);
 	if (retval < 0) {
 		chg_err("request ap rx irq failed.\n");
+	} else {
+		pr_info("request ap rx irq success\n");
 	}
 #endif
 }
